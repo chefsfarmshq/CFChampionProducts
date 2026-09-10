@@ -236,6 +236,7 @@ main.wrap{ padding: 0 28px 20px; }
 
 .list-scroll{
   overflow-x: auto;
+  overflow-y: clip;
   padding-top: 24px;
 }
 
@@ -249,6 +250,9 @@ main.wrap{ padding: 0 28px 20px; }
 }
 
 .list-head{
+  position: sticky;
+  top: var(--controls-height, 80px);
+  z-index: 15;
   background: var(--bg);
   border-bottom: 1px solid var(--line-strong);
   padding: 10px 4px 10px;
@@ -10117,6 +10121,22 @@ if (mobileQuery.addEventListener){
 }
 
 applyView();
+
+// Keep the sticky list-head pinned exactly below the controls bar, whatever
+// height that bar happens to be. A ResizeObserver reacts instantly to any
+// change (window resize, filters wrapping onto a second line, webfonts
+// finishing their swap) rather than guessing with a fixed delay.
+const controlsBarEl = document.querySelector('.controls-bar');
+function updateControlsHeight(){
+  if (!controlsBarEl) return;
+  document.documentElement.style.setProperty('--controls-height', controlsBarEl.offsetHeight + 'px');
+}
+if (typeof ResizeObserver !== 'undefined' && controlsBarEl){
+  new ResizeObserver(updateControlsHeight).observe(controlsBarEl);
+} else {
+  window.addEventListener('resize', updateControlsHeight);
+}
+updateControlsHeight();
 
 </script>
 </body>
