@@ -137,10 +137,13 @@ h1{
 
 /* ---------- Controls ---------- */
 
-.controls-bar{
+.sticky-header-wrap{
   position: sticky;
   top: 0;
   z-index: 20;
+}
+
+.controls-bar{
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   padding: 16px 0;
@@ -249,12 +252,18 @@ main.wrap{ padding: 0 28px 20px; }
   min-width: 780px;
 }
 
-.list-head{
-  position: sticky;
-  top: var(--controls-height, 80px);
-  z-index: 15;
+.list-head-bar{
   background: var(--bg);
   border-bottom: 1px solid var(--line-strong);
+}
+.list-head-scroll{
+  overflow-x: auto;
+  overflow-y: clip;
+  scrollbar-width: none; /* Firefox */
+}
+.list-head-scroll::-webkit-scrollbar{ display: none; } /* Chrome / Safari */
+
+.list-head{
   padding: 10px 4px 10px;
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -597,7 +606,7 @@ body.view-mobile .hero{ padding: 40px 0 26px; }
 body.view-mobile .logo{ height: 72px; }
 
 /* Column headers make no sense once rows stack vertically */
-body.view-mobile .list-head{ display: none; }
+body.view-mobile .list-head-bar{ display: none; }
 
 body.view-mobile .list-scroll{ overflow-x: visible; padding-top: 8px; }
 
@@ -705,37 +714,45 @@ body.view-mobile #search{ flex-basis: 100%; }
     </div>
   </header>
 
-  <div class="controls-bar">
-    <div class="wrap controls">
-      <input type="search" id="search" placeholder="Search products, farms, counties&hellip;" aria-label="Search products">
-      <select id="group-filter" aria-label="Filter by category">
-        <option value="">All categories</option>
-      </select>
-      <select id="origin-filter" aria-label="Filter by origin">
-        <option value="">All origins</option>
-        <option value="local">Local</option>
-        <option value="uk">UK</option>
-      </select>
-      <span class="count" id="result-count"></span>
-      <div class="view-toggle" role="group" aria-label="Switch layout">
-        <button type="button" class="view-toggle-btn" data-view="desktop">Desktop</button>
-        <button type="button" class="view-toggle-btn" data-view="mobile">Mobile</button>
+  <div class="sticky-header-wrap">
+    <div class="controls-bar">
+      <div class="wrap controls">
+        <input type="search" id="search" placeholder="Search products, farms, counties&hellip;" aria-label="Search products">
+        <select id="group-filter" aria-label="Filter by category">
+          <option value="">All categories</option>
+        </select>
+        <select id="origin-filter" aria-label="Filter by origin">
+          <option value="">All origins</option>
+          <option value="local">Local</option>
+          <option value="uk">UK</option>
+        </select>
+        <span class="count" id="result-count"></span>
+        <div class="view-toggle" role="group" aria-label="Switch layout">
+          <button type="button" class="view-toggle-btn" data-view="desktop">Desktop</button>
+          <button type="button" class="view-toggle-btn" data-view="mobile">Mobile</button>
+        </div>
+      </div>
+      <div class="wrap month-row">
+        <span class="month-row-label">In season during:</span>
+        <div class="month-buttons" id="month-filter-buttons" role="group" aria-label="Filter by months in season"></div>
       </div>
     </div>
-    <div class="wrap month-row">
-      <span class="month-row-label">In season during:</span>
-      <div class="month-buttons" id="month-filter-buttons" role="group" aria-label="Filter by months in season"></div>
+    <div class="list-head-bar">
+      <div class="wrap">
+        <div class="list-head-scroll" id="list-head-scroll">
+          <div class="list-head" id="list-head">
+            <span class="col-name">Product</span>
+            <span class="col-origin">Origin</span>
+            <span class="col-category">Category</span>
+            <div class="col-months" id="month-header-labels"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <main class="wrap">
     <div class="list-scroll">
-      <div class="list-head" id="list-head">
-        <span class="col-name">Product</span>
-        <span class="col-origin">Origin</span>
-        <span class="col-category">Category</span>
-        <div class="col-months" id="month-header-labels"></div>
-      </div>
       <div id="list" class="list"></div>
     </div>
     <p id="empty-state" class="empty-state" hidden>Nothing matches that search &mdash; try a different term or clear the filters.</p>
@@ -10122,21 +10139,27 @@ if (mobileQuery.addEventListener){
 
 applyView();
 
-// Keep the sticky list-head pinned exactly below the controls bar, whatever
-// height that bar happens to be. A ResizeObserver reacts instantly to any
-// change (window resize, filters wrapping onto a second line, webfonts
-// finishing their swap) rather than guessing with a fixed delay.
-const controlsBarEl = document.querySelector('.controls-bar');
-function updateControlsHeight(){
-  if (!controlsBarEl) return;
-  document.documentElement.style.setProperty('--controls-height', controlsBarEl.offsetHeight + 'px');
+// Keep the column-header row's horizontal scroll position in sync with the
+// product rows below it, since they're no longer the same physical scroll
+// container (the header now lives in the sticky wrapper up top, so it can
+// stick reliably, while the rows scroll independently beneath it).
+const listScrollEl = document.querySelector('.list-scroll');
+const listHeadScrollEl = document.getElementById('list-head-scroll');
+let syncingScroll = false;
+if (listScrollEl && listHeadScrollEl){
+  listScrollEl.addEventListener('scroll', () => {
+    if (syncingScroll) return;
+    syncingScroll = true;
+    listHeadScrollEl.scrollLeft = listScrollEl.scrollLeft;
+    syncingScroll = false;
+  });
+  listHeadScrollEl.addEventListener('scroll', () => {
+    if (syncingScroll) return;
+    syncingScroll = true;
+    listScrollEl.scrollLeft = listHeadScrollEl.scrollLeft;
+    syncingScroll = false;
+  });
 }
-if (typeof ResizeObserver !== 'undefined' && controlsBarEl){
-  new ResizeObserver(updateControlsHeight).observe(controlsBarEl);
-} else {
-  window.addEventListener('resize', updateControlsHeight);
-}
-updateControlsHeight();
 
 </script>
 </body>
